@@ -1,4 +1,4 @@
-synchronous multi-producer multi-consumer bounded queue on pthreads
+Synchronous multi-producer multi-consumer bounded queue on pthreads
 
 ## About
 This is a generic C implementation of a synchronous bounded queue, similar in semantics to Go's bounded channels.
@@ -7,7 +7,7 @@ Dependencies: C99, <pthread.h>
 ## Usage
 ### Setting up
 Just drop pthread_queue.c and pthread_queue.h if needed in your include path.
-These files contain generic or template code to instantiate which you will need to define QUEUE
+These files contain generic or template code to instantiate which you will need to define `QUEUE`
 macro, which will contain parameters to the template and include these files. Like this:
 
 ```c
@@ -36,9 +36,13 @@ Moving `queue_t` after it has been initialized will result in "undefined behavio
 - `int queue_push(queue_t *q, item_t *i)`
   * pushes a copy of `*i` into the queue's buffer. if queue is full, blocks until some other thread pops an item or closes the queue.
     if queue is closed does not push an item and returns 0, otherwise 1.
+- `int queue_trypush(queue_t *q, item_t *i)`
+  * like `queue_push` but returns `-1` when push couldn't be done without blocking current thread.
 - `int queue_pop(queue_t *q, item_t *i)`
   * pops an oldest item from the queue into `*i` if there is one in queue. blocks until an element is pushed into this queue or the queue is closed.
     if queue is empty and closed returns 0, otherwise 1.
+- `int queue_trypop(queue_t *q, item_t *i)`
+  * like `queue_pop` but returns `-1` when pop couldn't be done without blocking current thread.
 - `void queue_close(queue_t *q)`
   * closes the queue.
 - `void queue_drop(queue_t *q)`

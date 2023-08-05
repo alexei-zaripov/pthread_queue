@@ -17,9 +17,11 @@
 #define qitem_t QUEUEITEM(QUEUE)
 #define queue_init QCAT3(QUEUEPREF, init)
 #define queue_push QCAT3(QUEUEPREF, push)
+#define queue_trypush QCAT3(QUEUEPREF, queue_trypush)
 #define queue_pop QCAT3(QUEUEPREF, pop)
+#define queue_trypop QCAT3(QUEUEPREF, trypop)
 #define queue_close QCAT3(QUEUEPREF, close)
-#define queue_drop QCAT3(QUEUEPREF, destroy)
+#define queue_drop QCAT3(QUEUEPREF, drop)
 
 typedef struct {
 	qitem_t *buf;
@@ -52,6 +54,8 @@ void queue_drop(queue_t *q);
 #undef qitem_t
 #undef queue_init
 #undef queue_push
+#undef queue_trypush
 #undef queue_pop
+#undef queue_trypop
 #undef queue_close
 #undef queue_drop

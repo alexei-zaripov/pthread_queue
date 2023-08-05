@@ -30,9 +30,11 @@
 #define qitem_t QUEUEITEM(QUEUE)
 #define queue_init QCAT3(QUEUEPREF, init)
 #define queue_push QCAT3(QUEUEPREF, push)
+#define queue_trypush QCAT3(QUEUEPREF, trypush)
 #define queue_pop QCAT3(QUEUEPREF, pop)
+#define queue_trypop QCAT3(QUEUEPREF, trypop)
 #define queue_close QCAT3(QUEUEPREF, close)
-#define queue_drop QCAT3(QUEUEPREF, destroy)
+#define queue_drop QCAT3(QUEUEPREF, drop)
 
 typedef struct {
 	qitem_t *buf;
@@ -77,6 +79,25 @@ int queue_push(queue_t *q, qitem_t *i) {
 	return 1;
 }
 
+int queue_trypush(queue_t *q, qitem_t *i) {
+	if (pthread_mutex_trylock(&q->mtx) != 0) {
+		return -1;
+	}
+	if (q->isclosed) {
+		pthread_mutex_unlock(&q->mtx);
+		return 0;
+	}
+	if (q->len == q->cap) {
+		pthread_mutex_unlock(&q->mtx);
+		return -1;
+	}
+	q->buf[(q->begin+q->len) % q->cap] = *i;
+	q->len++;
+	pthread_mutex_unlock(&q->mtx);
+	pthread_cond_broadcast(&q->cond);
+	return 1;
+}
+
 int queue_pop(queue_t *q, qitem_t *i) {
 	pthread_mutex_lock(&q->mtx);
 	// at this point queue can be:
@@ -91,6 +112,27 @@ int queue_pop(queue_t *q, qitem_t *i) {
 	if (q->len == 0) {
 		pthread_mutex_unlock(&q->mtx);
 		pthread_cond_broadcast(&q->cond);
+		return 0;
+	}
+	*i = q->buf[q->begin];
+	q->len--;
+	q->begin = (q->begin+1) % q->cap;
+	pthread_mutex_unlock(&q->mtx);
+	pthread_cond_broadcast(&q->cond);
+	return 1;
+}
+
+int queue_trypop(queue_t *q, qitem_t *i) {
+	int e;
+	if ((e = pthread_mutex_trylock(&q->mtx)) != 0) {
+		return -1;
+	}
+	if (q->len == 0 && q->isclosed == 0) {
+		pthread_mutex_unlock(&q->mtx);
+		return -1;
+	}
+	if (q->len == 0) {
+		pthread_mutex_unlock(&q->mtx);
 		return 0;
 	}
 	*i = q->buf[q->begin];
@@ -130,7 +172,9 @@ void queue_drop(queue_t *q) {
 #undef qitem_t
 #undef queue_init
 #undef queue_push
+#undef queue_trypush
 #undef queue_pop
+#undef queue_trypop
 #undef queue_close
 #undef queue_drop
 
